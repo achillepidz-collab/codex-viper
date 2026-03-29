@@ -16,7 +16,13 @@ get_user_confirm() {
     local prompt="$1"
     local response
     while true; do
-        read -p "$prompt [y/n]: " response
+        # We read from /dev/tty to ensure it waits for keyboard input effectively,
+        # and checking the return code prevents an infinite loop if standard input closes.
+        if ! read -r -p "$prompt [y/n]: " response </dev/tty; then
+            echo "[Notice] Automatically skipping due to empty input or non-interactive terminal." 
+            return 1
+        fi
+        
         case "$response" in
             [yY]) return 0 ;;
             [nN]) return 1 ;;
@@ -167,9 +173,9 @@ install_viper() {
 
     # Interactive password input
     while true; do
-        read -sp "Enter VIPER admin password: " viper_pass
+        if ! read -sp "Enter VIPER admin password: " viper_pass </dev/tty; then exit 1; fi
         echo
-        read -sp "Confirm password: " viper_pass_confirm
+        if ! read -sp "Confirm password: " viper_pass_confirm </dev/tty; then exit 1; fi
         echo
         
         if [[ "$viper_pass" != "$viper_pass_confirm" ]]; then
@@ -237,11 +243,11 @@ EOF
     Gen_Cert
 
     # Ask for VIPER port
-    read -p "Enter VIPER port (default: 60000): " viper_port
+    read -p "Enter VIPER port (default: 60000): " viper_port </dev/tty || true
     viper_port=${viper_port:-60000}
 
     # Ask for basic auth configuration
-    read -p "Configure basic authentication? (default: y) [y/n]: " configure_auth
+    read -p "Configure basic authentication? (default: y) [y/n]: " configure_auth </dev/tty || true
     configure_auth=${configure_auth:-Y}
 
     if [[ "$configure_auth" =~ ^[Yy]$ ]]; then
